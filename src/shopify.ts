@@ -82,8 +82,8 @@ export async function publishDraft(draft: StoreDraft): Promise<PublishResult> {
       variants: [
         {
           id: product.variants.nodes[0].id,
-          price: p.priceUsd.toFixed(2),
-          compareAtPrice: p.compareAtPriceUsd ? p.compareAtPriceUsd.toFixed(2) : null,
+          price: p.price.toFixed(2),
+          compareAtPrice: p.compareAtPrice ? p.compareAtPrice.toFixed(2) : null,
         },
       ],
     },
@@ -109,4 +109,45 @@ export async function publishDraft(draft: StoreDraft): Promise<PublishResult> {
     pageIds,
     adminUrl: `https://${config.shopify.store}/admin/products/${numericId}`,
   };
+}
+
+export type Order = { createdAt: string; total: number; units: number };
+
+/** Orders created on or after `since`, newest first. Needs the read_orders scope. */
+export async function fetchOrders(since: Date): Promise<Order[]> {
+  const orders: Order[] = [];
+  let after: string | null = null;
+  do {
+    const data: {
+      orders: {
+        nodes: {
+          createdAt: string;
+          currentTotalPriceSet: { shopMoney: { amount: string } };
+          lineItems: { nodes: { quantity: number }[] };
+        }[];
+        pageInfo: { hasNextPage: boolean; endCursor: string | null };
+      };
+    } = await gql(
+      `query Orders($query: String!, $after: String) {
+        orders(first: 250, after: $after, query: $query, sortKey: CREATED_AT, reverse: true) {
+          nodes {
+            createdAt
+            currentTotalPriceSet { shopMoney { amount } }
+            lineItems(first: 50) { nodes { quantity } }
+          }
+          pageInfo { hasNextPage endCursor }
+        }
+      }`,
+      { query: `created_at:>=${since.toISOString()} AND -status:cancelled`, after },
+    );
+    for (const o of data.orders.nodes) {
+      orders.push({
+        createdAt: o.createdAt,
+        total: Number(o.currentTotalPriceSet.shopMoney.amount),
+        units: o.lineItems.nodes.reduce((sum, item) => sum + item.quantity, 0),
+      });
+    }
+    after = data.orders.pageInfo.hasNextPage ? data.orders.pageInfo.endCursor : null;
+  } while (after);
+  return orders;
 }
