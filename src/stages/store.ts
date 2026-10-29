@@ -1,10 +1,13 @@
+import { config } from "../config.js";
 import { structured } from "../llm.js";
 import { StoreDraft, type Candidate } from "../schemas.js";
 
 const SYSTEM = `You are a Shopify store builder and conversion copywriter. You turn one product into a
-small, trustworthy single-product brand. Copy is specific, benefit-led and honest: no fake reviews,
-no invented certifications, no medical or guaranteed-results claims, and shipping times that
-match dropshipping reality (typically 7 to 15 days).`;
+small, trustworthy single-product brand selling in the ${config.market}, priced in ${config.currency}
+including VAT. Copy is specific, benefit-led and honest: no fake reviews, no invented certifications,
+no medical or guaranteed-results claims, and shipping times that match dropshipping reality (typically
+7 to 15 days from overseas). Follow local consumer law and advertising rules (in the UK: the 14-day
+cancellation right under the Consumer Contracts Regulations, and the ASA CAP Code). Use local spelling.`;
 
 export async function draftStore(product: Candidate, niche: string): Promise<StoreDraft> {
   return structured({

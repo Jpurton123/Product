@@ -1,8 +1,10 @@
+import { config } from "../config.js";
 import { structured } from "../llm.js";
 import { ContentPack, type Candidate, type StoreDraft } from "../schemas.js";
 
 const SYSTEM = `You are a direct-response marketer for small Shopify brands that grow through short-form
-video and low-budget ads. Write in the brand's voice. Every hook must earn attention in two seconds.
+video and low-budget ads, writing for customers in the ${config.market} (local spelling, prices in
+${config.currency}, ads that follow local advertising rules such as the UK CAP Code). Write in the brand's voice. Every hook must earn attention in two seconds.
 Be honest: no fake testimonials, no invented stats, no claims the product page does not support.`;
 
 export async function makeContent(product: Candidate, store: StoreDraft): Promise<ContentPack> {

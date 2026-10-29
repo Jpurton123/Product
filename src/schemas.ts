@@ -4,8 +4,8 @@ export const Candidate = z.object({
   name: z.string(),
   niche: z.string(),
   whyTrending: z.string(),
-  supplierCostUsd: z.number().describe("Typical landed cost per unit from a supplier, including shipping"),
-  retailPriceUsd: z.number().describe("Price we would sell it for"),
+  supplierCost: z.number().describe("Typical landed cost per unit from a supplier, including shipping, in the store currency"),
+  retailPrice: z.number().describe("Price we would sell it for, in the store currency, including VAT"),
   suppliers: z.array(z.string()).describe("Where to source it, e.g. CJ Dropshipping, AliExpress, Zendrop"),
   scores: z.object({
     margin: z.number().describe("1-10, higher is better"),
@@ -32,8 +32,8 @@ export const StoreDraft = z.object({
   product: z.object({
     title: z.string(),
     descriptionHtml: z.string().describe("Product page body as simple HTML: <p>, <ul>, <li>, <strong>"),
-    priceUsd: z.number(),
-    compareAtPriceUsd: z.number().nullable(),
+    price: z.number().describe("In the store currency, including VAT"),
+    compareAtPrice: z.number().nullable(),
     productType: z.string(),
     tags: z.array(z.string()),
     seoTitle: z.string(),

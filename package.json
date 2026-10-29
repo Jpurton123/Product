@@ -10,6 +10,7 @@
     "content": "tsx src/cli.ts content",
     "run-all": "tsx src/cli.ts run",
     "weekly": "tsx src/cli.ts weekly",
+    "report": "tsx src/cli.ts report",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

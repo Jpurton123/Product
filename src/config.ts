@@ -9,6 +9,9 @@ export const config = {
     main: env("MODEL_MAIN", "claude-opus-5-5"),
     scoring: env("MODEL_SCORING", "claude-opus-5-5"),
   },
+  // Where the store sells and the currency its prices are in.
+  market: env("MARKET", "United Kingdom"),
+  currency: env("CURRENCY", "GBP"),
   maxRunCostUsd: Number(env("MAX_RUN_COST_USD", "3")),
   shopify: {
     store: env("SHOPIFY_STORE"),
@@ -18,6 +21,9 @@ export const config = {
     apiVersion: env("SHOPIFY_API_VERSION", "2026-07"),
   },
 };
+
+export const money = (amount: number) =>
+  new Intl.NumberFormat("en-GB", { style: "currency", currency: config.currency }).format(amount);
 
 export const shopifyConfigured = () =>
   Boolean(

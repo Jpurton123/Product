@@ -2,11 +2,14 @@ import { config } from "../config.js";
 import { research, structured } from "../llm.js";
 import { Shortlist, type Candidate } from "../schemas.js";
 
-const RESEARCH_SYSTEM = `You are a product researcher for a new one-person dropshipping store on Shopify.
-The owner has about $40 a month for ads and tools at first, so the product must be able to sell
-with small budgets and organic short-form video. Use web search to find what is selling right now.`;
+const RESEARCH_SYSTEM = `You are a product researcher for a new one-person dropshipping store on Shopify,
+selling to customers in the ${config.market} with prices in ${config.currency}. The owner has about
+40 ${config.currency} a month for ads and tools at first, so the product must be able to sell with small
+budgets and organic short-form video. Use web search to find what is selling right now in that market,
+and prefer suppliers that ship there quickly (local or regional warehouses).`;
 
-const SCORING_SYSTEM = `You score dropshipping products for a beginner Shopify store with a tiny budget.
+const SCORING_SYSTEM = `You score dropshipping products for a beginner Shopify store with a tiny budget,
+selling in the ${config.market}. All money is in ${config.currency}; retail prices include VAT.
 Be honest and conservative: a high score must be earned by evidence in the research notes.
 Avoid anything regulated (supplements, cosmetics claims, kids' safety items, electronics needing
 certification), branded or trademarked designs, sized clothing, and fragile or heavy items.`;
