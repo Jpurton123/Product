@@ -10,6 +10,8 @@ import { discover, overallScore } from "./stages/discover.js";
 import { draftStore } from "./stages/store.js";
 
 const RUNS = "runs";
+// The brand currently live in Shopify. Scheduled runs write new content for it.
+const BRAND = "brand";
 
 const save = (run: string, file: string, data: unknown) =>
   writeFileSync(join(RUNS, run, file), typeof data === "string" ? data : JSON.stringify(data, null, 2));
@@ -53,7 +55,7 @@ async function runDiscover(): Promise<string> {
   return run;
 }
 
-async function runStore(run: string, pick?: number): Promise<void> {
+async function runStore(run: string, pick?: number, yes = false): Promise<void> {
   const shortlist = load<Shortlist>(run, "shortlist.json");
   if (!shortlist) throw new Error(`Run ${run} has no shortlist. Run discover first.`);
   if (!pick) {
@@ -67,6 +69,9 @@ async function runStore(run: string, pick?: number): Promise<void> {
   console.log(`\nWriting the store for "${picked.name}"...`);
   const store = await draftStore(picked, shortlist.recommendedNiche);
   save(run, "store.json", store);
+  mkdirSync(BRAND, { recursive: true });
+  writeFileSync(join(BRAND, "store.json"), JSON.stringify(store, null, 2));
+  writeFileSync(join(BRAND, "product.json"), JSON.stringify(picked, null, 2));
   console.log(`Brand: ${store.brandName} - ${store.tagline}`);
   console.log(`Product: ${store.product.title} at $${store.product.priceUsd.toFixed(2)}`);
   console.log(`Pages: ${store.pages.map((p) => p.title).join(", ")}`);
@@ -75,16 +80,19 @@ async function runStore(run: string, pick?: number): Promise<void> {
     console.log("\nShopify is not set up in .env, so this is a dry run. The store is saved in store.json.");
     return;
   }
-  const go = await ask("\nCreate this in Shopify as a draft (not visible to shoppers)? [y/N] ");
+  const go = yes ? "y" : await ask("\nCreate this in Shopify as a draft (not visible to shoppers)? [y/N] ");
   if (go.toLowerCase() !== "y") return;
   const result = await publishDraft(store);
   save(run, "shopify.json", result);
   console.log(`Created as draft. Review it here: ${result.adminUrl}`);
 }
 
-async function runContent(run: string): Promise<void> {
-  const picked = load<Candidate>(run, "picked.json");
-  const store = load<StoreDraft>(run, "store.json");
+async function runContent(run: string, fromBrand = false): Promise<void> {
+  const dir = fromBrand ? BRAND : join(RUNS, run);
+  const read = <T>(file: string) =>
+    existsSync(join(dir, file)) ? (JSON.parse(readFileSync(join(dir, file), "utf8")) as T) : undefined;
+  const picked = read<Candidate>(fromBrand ? "product.json" : "picked.json");
+  const store = read<StoreDraft>("store.json");
   if (!picked || !store) throw new Error(`Run ${run} has no store yet. Run the store step first.`);
   console.log(`\nWriting launch content for ${store.brandName}...`);
   const pack: ContentPack = await makeContent(picked, store);
@@ -101,26 +109,37 @@ async function main() {
   const runArg = args.find((a) => !a.startsWith("--"));
   const pickArg = args.find((a) => a.startsWith("--pick="))?.split("=")[1];
   const pick = pickArg ? Number(pickArg) : undefined;
+  const yes = args.includes("--yes");
+  if (["discover", "store", "content", "weekly", "run"].includes(command) && !process.env.ANTHROPIC_API_KEY) {
+    throw new Error("ANTHROPIC_API_KEY is not set. Add it to .env (or as a GitHub secret for the scheduled runs).");
+  }
 
   switch (command) {
     case "discover":
       await runDiscover();
       break;
     case "store":
-      await runStore(runArg ?? latestRun(), pick);
+      await runStore(runArg ?? latestRun(), pick, yes);
       break;
     case "content":
       await runContent(runArg ?? latestRun());
       break;
+    case "weekly": {
+      // Unattended: new product research, plus fresh content for the live brand. Never touches Shopify.
+      const run = await runDiscover();
+      if (existsSync(join(BRAND, "store.json"))) await runContent(run, true);
+      else console.log("\nNo brand saved yet (run the store step once), so no content this week.");
+      break;
+    }
     case "run": {
       const run = await runDiscover();
-      await runStore(run, pick);
+      await runStore(run, pick, yes);
       await runContent(run);
       break;
     }
     default:
       console.log(
-        "Usage: npm run discover | npm run store [-- <run>] [--pick=N] | npm run content [-- <run>] | npm run run-all",
+        "Usage: npm run discover | npm run store [-- <run>] [--pick=N] | npm run content [-- <run>] | npm run run-all | npm run weekly",
       );
       return;
   }

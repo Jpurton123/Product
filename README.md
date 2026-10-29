@@ -25,6 +25,23 @@ npm run run-all           # all three in a row
 
 Every run is saved in `runs/<time>/` (`research.md`, `shortlist.json`, `store.json`, `content.md`).
 
+## Run it on GitHub (no computer needed)
+
+Two workflows in the **Actions** tab do the same work on GitHub's servers and save results to `runs/` in this repo.
+
+- **Build store** (run by hand): leave "pick" blank to research products. Open the new `runs/<time>/shortlist.json`, choose a product, then run it again with that product's number in "pick". It writes the store, creates it in Shopify as drafts, and writes the launch content.
+- **Weekly product research and content** (automatic): every Sunday from 1 November 2026, it researches new products and writes fresh content for your live brand. It never changes your Shopify store.
+
+Add these under **Settings → Secrets and variables → Actions**: `ANTHROPIC_API_KEY`, `SHOPIFY_STORE`, and either `SHOPIFY_CLIENT_ID` + `SHOPIFY_CLIENT_SECRET` or `SHOPIFY_ACCESS_TOKEN`.
+
+## Launch day (1 November)
+
+1. Add credit to your Anthropic account and create an API key. Add it as the `ANTHROPIC_API_KEY` secret.
+2. Start your Shopify plan, create the Dev Dashboard app (see Setup), and add the Shopify secrets.
+3. Run **Build store** with "pick" blank, choose a product, and run it again with the number.
+4. In Shopify admin, review the draft product and pages, add product photos, set them to active, and remove the store password.
+5. Post the content from `runs/<time>/content.md`. From then on, new research and content arrive every Sunday.
+
 ## Cost
 
 Each run prints what it spent on Claude. `MAX_RUN_COST_USD` (default $3) stops a run that goes over. A full run is expected to cost roughly $1 to $2 on Claude Opus 5.5, mostly from web research. To make product scoring cheaper, set `MODEL_SCORING=claude-haiku-5-5`.
