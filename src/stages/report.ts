@@ -55,9 +55,15 @@ export async function weeklyReport(opts: {
   shortlist?: Shortlist;
 }): Promise<{ report: WeeklyReport; sales: Window[] | null }> {
   let sales: Window[] | null = null;
+  let salesError = "";
   if (shopifyConfigured() && opts.product) {
-    const orders = await fetchOrders(new Date(Date.now() - 30 * 86_400_000));
-    sales = [summarise(orders, 7, opts.product), summarise(orders, 30, opts.product)];
+    try {
+      const orders = await fetchOrders(new Date(Date.now() - 30 * 86_400_000));
+      sales = [summarise(orders, 7, opts.product), summarise(orders, 30, opts.product)];
+    } catch (error) {
+      // Still write the report; tell the owner what to fix (often a missing read_orders scope).
+      salesError = `Could not read Shopify orders: ${error instanceof Error ? error.message : error}`;
+    }
   }
 
   const today = new Date().toISOString().slice(0, 10);
@@ -73,7 +79,7 @@ ${opts.product ? `Supplier cost per unit: ${money(opts.product.supplierCost)}` :
 </store>
 
 <sales>
-${sales ? JSON.stringify(sales, null, 2) : "No sales data yet (Shopify not connected or store not built)."}
+${sales ? JSON.stringify(sales, null, 2) : salesError || "No sales data yet (Shopify not connected or store not built)."}
 </sales>
 
 <new_product_research>
