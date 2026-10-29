@@ -1,0 +1,52 @@
+name: Build store
+
+# Run by hand from the Actions tab. Without a run, it researches products first and stops so you
+# can pick one. With a run and a product number, it writes the store, creates it in Shopify as
+# drafts, and writes the launch content.
+on:
+  workflow_dispatch:
+    inputs:
+      pick:
+        description: "Product number from the shortlist (leave blank to research products first)"
+        required: false
+      run:
+        description: "Run folder name under runs/ (blank = latest)"
+        required: false
+
+permissions:
+  contents: write
+
+concurrency: pipeline
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      SHOPIFY_STORE: ${{ secrets.SHOPIFY_STORE }}
+      SHOPIFY_ACCESS_TOKEN: ${{ secrets.SHOPIFY_ACCESS_TOKEN }}
+      SHOPIFY_CLIENT_ID: ${{ secrets.SHOPIFY_CLIENT_ID }}
+      SHOPIFY_CLIENT_SECRET: ${{ secrets.SHOPIFY_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Research products
+        if: inputs.pick == ''
+        run: npm run discover
+      - name: Build the store and content
+        if: inputs.pick != ''
+        run: |
+          npx tsx src/cli.ts store ${{ inputs.run }} --pick=${{ inputs.pick }} --yes
+          npx tsx src/cli.ts content ${{ inputs.run }}
+      - name: Save results
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add runs brand 2>/dev/null || true
+          git diff --cached --quiet || (git commit -m "Pipeline results $(date -u +%F)" && git push)

@@ -9,6 +9,7 @@
     "store": "tsx src/cli.ts store",
     "content": "tsx src/cli.ts content",
     "run-all": "tsx src/cli.ts run",
+    "weekly": "tsx src/cli.ts weekly",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
